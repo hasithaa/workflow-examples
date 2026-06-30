@@ -2,8 +2,10 @@ import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom"
 import { useAuth } from "./auth";
 import Login from "./views/Login";
 import WorkflowsView from "./views/WorkflowsView";
+import WorkflowDetailView from "./views/WorkflowDetailView";
 import TasksView from "./views/TasksView";
 import FailedActivitiesView from "./views/FailedActivitiesView";
+import FailedActivityDetailView from "./views/FailedActivityDetailView";
 import TaskDetailView from "./views/TaskDetailView";
 
 function Shell() {
@@ -42,9 +44,11 @@ function Shell() {
       <main className="content">
         <Routes>
           <Route path="/workflows" element={<WorkflowsView />} />
+          <Route path="/workflows/:workflowId" element={<WorkflowDetailView />} />
           <Route path="/tasks" element={<TasksView />} />
           <Route path="/tasks/:taskId" element={<TaskDetailView />} />
           <Route path="/failed-activities" element={<FailedActivitiesView />} />
+          <Route path="/failed-activities/:taskId" element={<FailedActivityDetailView />} />
           <Route path="*" element={<Navigate to="/workflows" replace />} />
         </Routes>
       </main>

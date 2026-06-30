@@ -1,9 +1,12 @@
 import type {
+  ActivityTreeNode,
   HumanTaskInfo,
   HumanTaskSummary,
+  Page,
   RetryTaskInfo,
   RetryTaskSummary,
   Session,
+  WorkflowInfo,
   WorkflowSummary,
 } from "./types";
 
@@ -62,6 +65,14 @@ function items<T>(data: any): T[] {
   return [];
 }
 
+function page<T>(data: any): Page<T> {
+  return {
+    items: items<T>(data),
+    nextPageToken: (data && data.nextPageToken) || null,
+    hasMore: Boolean(data && data.hasMore),
+  };
+}
+
 function qs(params: Record<string, string | number | boolean | undefined>): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -94,8 +105,28 @@ export async function listWorkflows(
   return items<WorkflowSummary>(data);
 }
 
-export async function getWorkflow(workflowId: string): Promise<any> {
-  return request<any>("GET", `/api/wf/workflows/${encodeURIComponent(workflowId)}`);
+export async function listWorkflowsPage(
+  params: {
+    workflowType?: string;
+    status?: string;
+    limit?: number;
+    pageToken?: string;
+  } = {},
+): Promise<Page<WorkflowSummary>> {
+  const data = await request<any>("GET", `/api/wf/workflows${qs({ limit: 20, ...params })}`);
+  return page<WorkflowSummary>(data);
+}
+
+export async function getWorkflow(workflowId: string): Promise<WorkflowInfo> {
+  return request<WorkflowInfo>("GET", `/api/wf/workflows/${encodeURIComponent(workflowId)}`);
+}
+
+export async function getActivityTree(workflowId: string): Promise<ActivityTreeNode[]> {
+  const data = await request<any>(
+    "GET",
+    `/api/wf/workflows/${encodeURIComponent(workflowId)}/activity-tree`,
+  );
+  return (data && Array.isArray(data.nodes) ? data.nodes : []) as ActivityTreeNode[];
 }
 
 // ---- Human tasks ----------------------------------------------------------
@@ -110,6 +141,19 @@ export async function listHumanTasks(
 ): Promise<HumanTaskSummary[]> {
   const data = await request<any>("GET", `/api/wf/human-tasks${qs({ limit: 100, ...params })}`);
   return items<HumanTaskSummary>(data);
+}
+
+export async function listHumanTasksPage(
+  params: {
+    status?: string;
+    parentWorkflowId?: string;
+    onlyMyTasks?: boolean;
+    limit?: number;
+    pageToken?: string;
+  } = {},
+): Promise<Page<HumanTaskSummary>> {
+  const data = await request<any>("GET", `/api/wf/human-tasks${qs({ limit: 20, ...params })}`);
+  return page<HumanTaskSummary>(data);
 }
 
 export async function getHumanTask(taskId: string): Promise<HumanTaskInfo> {
@@ -138,6 +182,13 @@ export async function listRetryTasks(
 ): Promise<RetryTaskSummary[]> {
   const data = await request<any>("GET", `/api/wf/retry-tasks${qs({ limit: 100, ...params })}`);
   return items<RetryTaskSummary>(data);
+}
+
+export async function listRetryTasksPage(
+  params: { status?: string; parentWorkflowId?: string; limit?: number; pageToken?: string } = {},
+): Promise<Page<RetryTaskSummary>> {
+  const data = await request<any>("GET", `/api/wf/retry-tasks${qs({ limit: 20, ...params })}`);
+  return page<RetryTaskSummary>(data);
 }
 
 export async function getRetryTask(taskId: string): Promise<RetryTaskInfo> {

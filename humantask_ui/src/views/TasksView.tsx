@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import * as api from "../api";
-import { useAsync } from "../useAsync";
+import { usePagedList, Pager } from "../pagination";
 import { matchesFilter, shortTaskName, type HumanTaskSummary, type StatusFilter } from "../types";
 import { Empty, ErrorBanner, formatTime, Spinner, StatusBadge, StatusFilterBar } from "../ui";
 
 export default function TasksView() {
   const [filter, setFilter] = useState<StatusFilter>("PENDING");
   // onlyMyTasks scopes the list to the logged-in reviewer's roles.
-  const { data, error, loading } = useAsync(() => api.listHumanTasks({ onlyMyTasks: true }), []);
+  const list = usePagedList<HumanTaskSummary>(
+    (pageToken) => api.listHumanTasksPage({ onlyMyTasks: true, pageToken }),
+    [],
+  );
 
-  const tasks = (data ?? []).filter((t) => matchesFilter(t.status, filter));
+  const tasks = list.items.filter((t) => matchesFilter(t.status, filter));
 
   return (
     <div>
@@ -20,16 +23,23 @@ export default function TasksView() {
       <div className="toolbar">
         <StatusFilterBar value={filter} onChange={setFilter} />
         <span className="spacer" />
-        <span className="muted small">{tasks.length} task(s)</span>
+        <Pager
+          pageIndex={list.pageIndex}
+          canPrev={list.canPrev}
+          canNext={list.canNext}
+          onPrev={list.prev}
+          onNext={list.next}
+          count={tasks.length}
+        />
       </div>
 
-      <ErrorBanner error={error} />
+      <ErrorBanner error={list.error} />
 
       <div className="card">
-        {loading ? (
+        {list.loading ? (
           <Spinner />
         ) : tasks.length === 0 ? (
-          <Empty>No {filter.toLowerCase()} tasks.</Empty>
+          <Empty>No {filter.toLowerCase()} tasks on this page.</Empty>
         ) : (
           <table>
             <thead>

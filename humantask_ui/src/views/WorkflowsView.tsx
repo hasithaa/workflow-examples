@@ -1,113 +1,97 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import * as api from "../api";
 import { REVIEW_WORKFLOW_TYPE } from "../api";
 import { useAsync } from "../useAsync";
-import { RetryTaskItem } from "../components";
-import { shortTaskName, type HumanTaskSummary, type RetryTaskSummary, type WorkflowSummary } from "../types";
+import { usePagedList, Pager } from "../pagination";
+import { isPending, type WorkflowSummary } from "../types";
 import { Empty, ErrorBanner, formatTime, Spinner, StatusBadge } from "../ui";
 
-interface Grouped {
-  workflows: WorkflowSummary[];
-  tasksByWf: Map<string, HumanTaskSummary[]>;
-  retriesByWf: Map<string, RetryTaskSummary[]>;
-  ids: string[];
-}
-
-function groupBy<T>(items: T[], key: (t: T) => string): Map<string, T[]> {
-  const m = new Map<string, T[]>();
-  for (const it of items) {
-    const k = key(it);
-    (m.get(k) ?? m.set(k, []).get(k)!).push(it);
-  }
-  return m;
-}
-
 export default function WorkflowsView() {
-  const { data, error, loading, reload } = useAsync<Grouped>(async () => {
-    const [workflows, tasks, retries] = await Promise.all([
-      api.listWorkflows({ workflowType: REVIEW_WORKFLOW_TYPE }).catch(() => []),
-      api.listHumanTasks({}),
-      api.listRetryTasks({}),
-    ]);
-    const tasksByWf = groupBy(tasks, (t) => t.parentWorkflowId);
-    const retriesByWf = groupBy(retries, (r) => r.parentWorkflowId);
-    // Union of workflow ids known from the workflow list and from child tasks.
-    const ids = new Set<string>(workflows.map((w) => w.workflowId));
-    for (const k of tasksByWf.keys()) ids.add(k);
-    for (const k of retriesByWf.keys()) ids.add(k);
-    return { workflows, tasksByWf, retriesByWf, ids: [...ids] };
-  }, []);
+  const list = usePagedList<WorkflowSummary>(
+    (pageToken) => api.listWorkflowsPage({ workflowType: REVIEW_WORKFLOW_TYPE, pageToken }),
+    [],
+  );
 
   return (
     <div>
       <h1 className="page-title">Review Shipment Errors</h1>
       <p className="page-sub">
-        Every <code>{REVIEW_WORKFLOW_TYPE}</code> instance, expandable to its human tasks and failed activities.
+        Each <code>{REVIEW_WORKFLOW_TYPE}</code> instance. Open one to see its steps, human tasks and failed
+        activities.
       </p>
 
-      <ErrorBanner error={error} />
+      <div className="toolbar">
+        <span className="spacer" />
+        <Pager
+          pageIndex={list.pageIndex}
+          canPrev={list.canPrev}
+          canNext={list.canNext}
+          onPrev={list.prev}
+          onNext={list.next}
+          count={list.items.length}
+        />
+      </div>
 
-      {loading ? (
-        <Spinner />
-      ) : !data || data.ids.length === 0 ? (
-        <div className="card">
+      <ErrorBanner error={list.error} />
+
+      <div className="card">
+        {list.loading ? (
+          <Spinner />
+        ) : list.items.length === 0 ? (
           <Empty>No shipment review workflows yet. Trigger a failing shipping request to create one.</Empty>
-        </div>
-      ) : (
-        data.ids.map((wfId) => {
-          const wf = data.workflows.find((w) => w.workflowId === wfId);
-          const tasks = data.tasksByWf.get(wfId) ?? [];
-          const retries = data.retriesByWf.get(wfId) ?? [];
-          return (
-            <details className="tree" key={wfId} open={data.ids.length <= 3}>
-              <summary>
-                <span>{wf?.workflowType ?? REVIEW_WORKFLOW_TYPE}</span>
-                <StatusBadge status={wf?.status ?? "RUNNING"} />
-                <span className="spacer" />
-                <span className="muted small mono">{wfId}</span>
-              </summary>
-              <div className="tree-body">
-                <div className="subhead">
-                  Human tasks <span className="pill-count">{tasks.length}</span>
-                </div>
-                {tasks.length === 0 ? (
-                  <p className="muted small">None.</p>
-                ) : (
-                  <table>
-                    <tbody>
-                      {tasks.map((t) => (
-                        <tr key={t.taskId}>
-                          <td>
-                            <Link to={`/tasks/${encodeURIComponent(t.taskId)}`}>{shortTaskName(t.taskName)}</Link>
-                          </td>
-                          <td>
-                            <StatusBadge status={t.status} />
-                          </td>
-                          <td className="muted small">{formatTime(t.startTime)}</td>
-                          <td className="row-actions">
-                            <Link className="btn small" to={`/tasks/${encodeURIComponent(t.taskId)}`}>
-                              Open
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-
-                <div className="subhead">
-                  Failed activities <span className="pill-count">{retries.length}</span>
-                </div>
-                {retries.length === 0 ? (
-                  <p className="muted small">None.</p>
-                ) : (
-                  retries.map((r) => <RetryTaskItem key={r.taskId} task={r} onChanged={reload} />)
-                )}
-              </div>
-            </details>
-          );
-        })
-      )}
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Status</th>
+                <th>Active human tasks</th>
+                <th>Active failed activities</th>
+                <th>Started</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.items.map((w) => (
+                <WorkflowRow key={w.workflowId} wf={w} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
+  );
+}
+
+function WorkflowRow({ wf }: { wf: WorkflowSummary }) {
+  const navigate = useNavigate();
+  // Counts are fetched per visible row (fine for a page of ~20).
+  const counts = useAsync(async () => {
+    const [tasks, retries] = await Promise.all([
+      api.listHumanTasks({ parentWorkflowId: wf.workflowId }),
+      api.listRetryTasks({ parentWorkflowId: wf.workflowId }),
+    ]);
+    return {
+      activeTasks: tasks.filter((t) => isPending(t.status)).length,
+      activeFailed: retries.filter((r) => isPending(r.status)).length,
+    };
+  }, [wf.workflowId]);
+
+  const open = () => navigate(`/workflows/${encodeURIComponent(wf.workflowId)}`);
+
+  return (
+    <tr className="clickable" onClick={open}>
+      <td>
+        <a onClick={(e) => { e.preventDefault(); open(); }} href={`/workflows/${wf.workflowId}`}>
+          {wf.workflowType}
+        </a>
+        <div className="muted small mono">{wf.workflowId}</div>
+      </td>
+      <td>
+        <StatusBadge status={wf.status} />
+      </td>
+      <td>{counts.loading ? "…" : <span className="pill-count">{counts.data?.activeTasks ?? 0}</span>}</td>
+      <td>{counts.loading ? "…" : <span className="pill-count">{counts.data?.activeFailed ?? 0}</span>}</td>
+      <td className="muted small">{formatTime(wf.startTime)}</td>
+    </tr>
   );
 }

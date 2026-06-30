@@ -1,41 +1,18 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import * as api from "../api";
 import { useAsync } from "../useAsync";
 import { COMPLETION_FORMS, DynamicForm, fieldsFromJsonSchema, KeyValues } from "../dynamic";
-import { RetryTaskItem } from "../components";
+import { Modal, ProcessingModal, Tabs, useProcessing } from "../processing";
 import { isPending, shortTaskName } from "../types";
 import { Empty, ErrorBanner, formatTime, Spinner, StatusBadge } from "../ui";
 
 export default function TaskDetailView() {
   const { taskId = "" } = useParams();
-  const navigate = useNavigate();
   const task = useAsync(() => api.getHumanTask(taskId), [taskId]);
-  // Failed activities that belong to the same parent workflow as this task.
-  const retries = useAsync(
-    async () =>
-      task.data
-        ? api.listRetryTasks({ parentWorkflowId: task.data.parentWorkflowId })
-        : Promise.resolve([]),
-    [task.data?.parentWorkflowId],
-  );
-
-  const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  async function act(fn: () => Promise<void>) {
-    setBusy(true);
-    setActionError(null);
-    try {
-      await fn();
-      task.reload();
-      retries.reload();
-    } catch (e) {
-      setActionError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const proc = useProcessing(() => task.reload());
+  const [tab, setTab] = useState("complete");
+  const [showFail, setShowFail] = useState(false);
 
   if (task.loading) return <Spinner />;
   if (task.error || !task.data) {
@@ -55,6 +32,7 @@ export default function TaskDetailView() {
 
   return (
     <div>
+      <ProcessingModal open={proc.active} message={proc.message} />
       <Link className="back-link" to="/tasks">← Back to tasks</Link>
 
       <div className="card">
@@ -64,17 +42,9 @@ export default function TaskDetailView() {
         </div>
         <div className="card-body">
           {t.description && <p>{t.description}</p>}
-          <KeyValues
-            data={{
-              "Task": shortName,
-              "Task ID": t.taskId,
-              "Parent workflow": t.parentWorkflowId,
-              "Roles": t.userRoles.join(", "),
-              "Created": formatTime(t.createdAt),
-              "Closed": formatTime(t.closeTime),
-              ...(t.completedBy ? { "Completed by": t.completedBy } : {}),
-            }}
-          />
+          <Link className="muted small" to={`/workflows/${encodeURIComponent(t.parentWorkflowId)}`}>
+            View workflow ↗
+          </Link>
         </div>
       </div>
 
@@ -85,67 +55,112 @@ export default function TaskDetailView() {
         </div>
       </div>
 
-      {actionError && <div className="banner error">{actionError}</div>}
+      {proc.error && <div className="banner error">{proc.error}</div>}
 
       {pending ? (
         <div className="card">
-          <div className="card-head"><h3>Complete this task</h3></div>
           <div className="card-body">
-            {shortName === "reviewErrorTask" && (
-              <div className="btn-row" style={{ marginBottom: 16 }}>
-                <button
-                  className="btn primary"
-                  disabled={busy}
-                  onClick={() => act(() => api.completeHumanTask(t.taskId, { retryMessage: true }))}
-                >
-                  ✓ Approve retry
-                </button>
-                <button
-                  className="btn"
-                  disabled={busy}
-                  onClick={() => act(() => api.completeHumanTask(t.taskId, { retryMessage: false }))}
-                >
-                  ✕ Reject (mark failed)
+            <Tabs
+              active={tab}
+              onChange={setTab}
+              tabs={[
+                { id: "complete", label: "Complete Task" },
+                { id: "actions", label: "Task Actions" },
+              ]}
+            />
+
+            {tab === "complete" &&
+              (formFields ? (
+                <DynamicForm
+                  fields={formFields}
+                  submitLabel="Complete Task"
+                  busy={proc.active}
+                  onSubmit={(result) =>
+                    proc.run(() => api.completeHumanTask(t.taskId, result), {
+                      pending: "Completing task…",
+                    })
+                  }
+                />
+              ) : (
+                <RawResultForm
+                  busy={proc.active}
+                  onSubmit={(result) =>
+                    proc.run(() => api.completeHumanTask(t.taskId, result), { pending: "Completing task…" })
+                  }
+                />
+              ))}
+
+            {tab === "actions" && (
+              <div>
+                <p className="muted">
+                  Fail this task to finish it with an error instead of a normal result. This cannot be undone.
+                </p>
+                <button className="btn danger" onClick={() => setShowFail(true)}>
+                  Fail task…
                 </button>
               </div>
             )}
-
-            {formFields ? (
-              <DynamicForm
-                fields={formFields}
-                submitLabel="Complete task"
-                busy={busy}
-                onSubmit={(result) => act(() => api.completeHumanTask(t.taskId, result))}
-              />
-            ) : (
-              <RawResultForm busy={busy} onSubmit={(result) => act(() => api.completeHumanTask(t.taskId, result))} />
-            )}
-
-            <div className="subhead">Or reject the task entirely</div>
-            <FailForm busy={busy} onSubmit={(reason) => act(async () => {
-              await api.failHumanTask(t.taskId, reason);
-              navigate("/tasks");
-            })} />
           </div>
         </div>
       ) : (
         <div className="card">
-          <div className="card-head"><h3>Result</h3></div>
+          <div className="card-head">
+            <h3>Result</h3>
+            <span className="muted small">
+              {t.completedBy ? `by ${t.completedBy} · ` : ""}
+              {formatTime(t.completedAt ?? t.closeTime)}
+            </span>
+          </div>
           <div className="card-body">
             {t.result ? <KeyValues data={t.result as Record<string, unknown>} /> : <Empty>No result recorded.</Empty>}
           </div>
         </div>
       )}
 
-      <h2 className="subhead" style={{ fontSize: 13 }}>Failed activities in this workflow</h2>
-      {retries.loading ? (
-        <Spinner />
-      ) : (retries.data ?? []).length === 0 ? (
-        <div className="card"><Empty>None.</Empty></div>
-      ) : (
-        (retries.data ?? []).map((r) => <RetryTaskItem key={r.taskId} task={r} onChanged={() => { task.reload(); retries.reload(); }} />)
+      {showFail && (
+        <FailDialog
+          busy={proc.active}
+          onCancel={() => setShowFail(false)}
+          onConfirm={(reason) => {
+            setShowFail(false);
+            proc.run(() => api.failHumanTask(t.taskId, reason), { pending: "Completing task with error…" });
+          }}
+        />
       )}
     </div>
+  );
+}
+
+function FailDialog({
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  busy: boolean;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  return (
+    <Modal title="Complete with error?" onClose={onCancel}>
+      <div className="form">
+        <div className="field">
+          <label>Reason *</label>
+          <textarea
+            rows={3}
+            value={reason}
+            autoFocus
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Why is this task being failed?"
+          />
+        </div>
+        <div className="btn-row">
+          <button className="btn danger" disabled={busy || !reason.trim()} onClick={() => onConfirm(reason.trim())}>
+            Complete with Error
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -171,22 +186,7 @@ function RawResultForm({ busy, onSubmit }: { busy: boolean; onSubmit: (result: u
           }
         }}
       >
-        Complete task
-      </button>
-    </div>
-  );
-}
-
-function FailForm({ busy, onSubmit }: { busy: boolean; onSubmit: (reason: string) => void }) {
-  const [reason, setReason] = useState("");
-  return (
-    <div className="form">
-      <div className="field">
-        <label>Reason</label>
-        <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is this task being failed?" />
-      </div>
-      <button className="btn danger" disabled={busy || !reason.trim()} onClick={() => onSubmit(reason.trim())}>
-        Fail task
+        Complete Task
       </button>
     </div>
   );

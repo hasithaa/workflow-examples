@@ -32,17 +32,29 @@ carol:carol123:reviewer,admin
 
 ## Views
 
-1. **Review Shipment Errors** — every `reviewErrorTaskProcess` instance,
-   expandable to its **human tasks** and **failed activities** (grouped by
-   parent workflow id).
-2. **Review Tasks** — human tasks for the logged-in reviewer, filterable by
-   Pending / Completed / All. Open one to view its details and act on it.
-3. **Failed Activities** — manual-retry tasks, filterable by status, each with
-   **Retry**, **Retry with new input**, and **Fail** actions.
+All lists are **paginated** (cursor-based, via the API's `pageToken` /
+`nextPageToken`).
 
-The **Task detail** view shows the task input, lets you Approve / Reject (or
-complete via a generated form), Fail the task, and act on failed activities
-belonging to the same workflow.
+1. **Review Shipment Errors** — a list of `reviewErrorTaskProcess` instances
+   showing status plus the count of **active human tasks** and **active failed
+   activities**. Click a row to open the **workflow detail**, which shows the
+   steps taken (from the activity tree), its human tasks, and its failed
+   activities.
+2. **Review Tasks** — human tasks for the logged-in reviewer, filterable by
+   Pending / Completed / All. Open one to act on it. The detail is **tabbed**:
+   - **Complete Task** — a form generated from the task schema + a primary
+     *Complete Task* button.
+   - **Task Actions** — *Fail task*, which opens a confirmation dialog with a
+     reason (*Complete with Error*).
+3. **Failed Activities** — manual-retry tasks, filterable by status. Open one to
+   see the failure and either **Retry**, **Retry with new input**, or **Fail**
+   it; once actioned the detail shows the outcome (who decided and when).
+
+### Processing indicator
+
+Workflow actions (completing a task, retrying an activity) advance the workflow
+asynchronously, so after each action the UI shows a processing overlay, waits
+briefly, and then refreshes so the updated status is visible.
 
 ## Dynamic rendering
 
@@ -82,10 +94,11 @@ humantask_ui/
 ├── server/index.mjs     # BFF: login, sessions, header-injecting proxy
 ├── users.txt            # demo user store (plain text)
 └── src/
-    ├── api.ts           # typed calls to the BFF
+    ├── api.ts           # typed calls to the BFF (incl. paginated list helpers)
     ├── auth.tsx         # auth context + token storage
     ├── dynamic.tsx      # dynamic value rendering + form generation
-    ├── components.tsx   # RetryTaskItem (failed-activity actions)
-    ├── views/           # Login, Workflows, Tasks, FailedActivities, TaskDetail
+    ├── pagination.tsx   # usePagedList hook + Pager
+    ├── processing.tsx   # processing overlay, modal, tabs
+    ├── views/           # Login, Workflows(+Detail), Tasks(+Detail), FailedActivities(+Detail)
     └── styles.css       # white theme
 ```

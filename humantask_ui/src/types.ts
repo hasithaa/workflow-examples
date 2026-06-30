@@ -64,6 +64,35 @@ export interface WorkflowSummary {
   [key: string]: unknown;
 }
 
+export interface WorkflowInfo {
+  workflowId: string;
+  workflowType: string;
+  status: string;
+  result: unknown;
+  errorMessage: string | null;
+  activityInvocations: unknown[];
+}
+
+export interface ActivityTreeNode {
+  id: string;
+  name: string;
+  type: string; // HUMAN_TASK | ACTIVITY | RETRY_TASK | ...
+  status: string;
+  startTime: string | null;
+  endTime: string | null;
+  input: unknown;
+  output: unknown;
+  failure: { message?: string; type?: string; cause?: string } | null;
+  attempt: number | null;
+  children: ActivityTreeNode[] | null;
+}
+
+export interface Page<T> {
+  items: T[];
+  nextPageToken: string | null;
+  hasMore: boolean;
+}
+
 // The status values reported by the runtime for "still waiting / open" work.
 const PENDING_STATUSES = new Set(["RUNNING", "PENDING", "OPEN", "SCHEDULED", "STARTED"]);
 
