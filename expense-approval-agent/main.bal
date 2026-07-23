@@ -2,6 +2,9 @@ import ballerina/ai;
 import ballerina/http;
 import ballerina/io;
 import ballerina/workflow;
+import ballerinax/metrics.logs as _;
+
+import wso2/icp.runtime.bridge as _;
 
 final ai:ModelProvider expenseModel = check ai:getDefaultModelProvider();
 
