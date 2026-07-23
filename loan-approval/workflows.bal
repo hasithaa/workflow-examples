@@ -37,7 +37,7 @@ function disbursementWorkflow(workflow:Context ctx, DisbursementRequest request,
     FundsRelease release = check wait dataEvents.fundsRelease;
 
     string reference = check ctx->callActivity(transferFunds,
-            {"accountNo": request.accountNo, "amount": request.amount});
+            {"accountNo": request.accountNo, "amount": request.amount}, retryPolicy = "manager");
     return {applicationId: request.applicationId, reference, batchNo: release.batchNo};
 }
 

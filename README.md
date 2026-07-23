@@ -67,9 +67,12 @@ following users/roles in your ICP instance before running:
 | --- | --- | --- |
 | `manager` | `expense-approval` | Decides the `approveExpense` human task (approve/reject a claim) |
 | `support-lead` | `customer-support-agent` | Completes the `escalation` human task and approves gated `issueRefund` reviews |
+| `manager` | `loan-approval` | Decides manual-retry reviews of the `transferFunds` activity (`retryPolicy = "manager"`) |
 
 For a local trial, two users are enough — e.g. `alice` with role `manager` and
-`bob` with role `support-lead`. Programmatic completion must pass matching
+`bob` with role `support-lead`. Manual retry policies take the reviewer role(s) directly as the policy value
+(`retryPolicy = "manager"` or `["finance", "manager"]`; an empty list allows
+any role). Programmatic completion must pass matching
 roles, e.g.:
 
 ```ballerina
