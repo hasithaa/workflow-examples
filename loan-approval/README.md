@@ -24,5 +24,5 @@ transfer reference.
 
 ## Requirements
 
-- `ballerina/workflow` **0.8.0** in the **local** repository (object-model build).
+- `ballerina/workflow` **0.8.3**, resolved from Ballerina Central.
 - A local Temporal dev server on `localhost:7233` (see `Config.toml`).

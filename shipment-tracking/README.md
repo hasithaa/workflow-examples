@@ -20,5 +20,5 @@ shipment, send the pickup and delivery confirmations, and read the result.
 
 ## Requirements
 
-- `ballerina/workflow` **0.8.0** in the **local** repository.
+- `ballerina/workflow` **0.8.3**, resolved from Ballerina Central.
 - Temporal dev server on `localhost:7233`.

@@ -78,6 +78,6 @@ hurl --interactive tryit/scenario-1-happy-path.hurl
 
 ## Requirements
 
-- `ballerina/workflow` **0.8.0** and `wso2/icp.runtime.bridge` in the **local** repository.
+- `ballerina/workflow` **0.8.3** and `wso2/icp.runtime.bridge` **0.2.0**, resolved from Ballerina Central.
 - Temporal dev server on `localhost:7233`.
 - ICP running with a `manager`-role user (see the repository README).

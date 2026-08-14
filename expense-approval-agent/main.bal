@@ -70,8 +70,8 @@ service /expenses on new http:Listener(9098) {
     # + submission - The bills
     # + return - The agent's reply, or an error
     resource function post [string instanceId]/bills(BillSubmission submission) returns json|error {
-        string token = check expenseAgent.sendEvent(instanceId, "billSubmitted", submission);
-        string reply = check expenseAgent.waitForEventResult(instanceId, token);
+        string token = check expenseAgent.sendData(instanceId, "billSubmitted", submission);
+        string reply = check expenseAgent.waitForDataResult(instanceId, token);
         return {instanceId, reply};
     }
 

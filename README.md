@@ -18,33 +18,20 @@ packages as one workspace.
 | [`customer-support-agent`](customer-support-agent/) | Support triage | **Single durable agent**: activities, approval-gated refunds, AI tool, human-task escalation, multi-turn conversation channel |
 | [`travel-desk-agents`](travel-desk-agents/) | Trip planning | **Multi-agent / A2A**: coordinator + two specialist peer agents, synchronous and asynchronous (callback channel) delegation |
 
-## Prerequisite: the unreleased `workflow` 0.8.0 module
+## Prerequisite: the `workflow` module
 
-These examples rely on an **unreleased 0.8.0 build** of `ballerina/workflow` —
-the object-model durable agent and child-workflow APIs from the in-review PRs
-([#69](https://github.com/ballerina-platform/module-ballerina-workflow/pull/69),
-[#70](https://github.com/ballerina-platform/module-ballerina-workflow/pull/70)).
-It is **not on Ballerina Central**: build it yourself and publish it to the
-**local repository**.
+These examples use the released
+[`ballerina/workflow`](https://central.ballerina.io/ballerina/workflow) **0.8.3**
+from Ballerina Central — no local build is needed. Every example's
+`Ballerina.toml` pins the version; `bal build` pulls it (and
+`wso2/icp.runtime.bridge` 0.2.0 for the expense examples) automatically.
+The examples target distribution **2201.13.4** (Swan Lake Update 13).
 
-```sh
-git clone https://github.com/ballerina-platform/module-ballerina-workflow
-cd module-ballerina-workflow
-git fetch origin pull/70/head:durable-agent-object-model
-git checkout durable-agent-object-model
-./gradlew :workflow-ballerina:build -x test
-
-# publish the built bala to the local repository
-mkdir -p ~/.ballerina/repositories/local/bala/ballerina/workflow
-cp -R target/ballerina-runtime/repo/bala/ballerina/workflow/0.8.0 \
-      ~/.ballerina/repositories/local/bala/ballerina/workflow/0.8.0
-```
-
-Every example's `Ballerina.toml` pins `ballerina/workflow` 0.8.0 with
-`repository = "local"`. If you rebuild the module, also purge the extracted
-cache (`~/.ballerina/repositories/local/cache-*/ballerina/workflow`) so the old
-build does not shadow the new one. `ballerina/ai` is pinned to 1.11.2 (the
-1.12.0 BIR is incompatible with this distribution).
+> If you previously followed the local-build instructions from an older
+> revision of this repo, remove the stale local copies so they cannot shadow
+> the released packages: delete
+> `~/.ballerina/repositories/local/bala/ballerina/workflow` and purge the
+> extracted caches (`~/.ballerina/repositories/local/cache-*/ballerina/workflow`).
 
 ## Runtime setup
 

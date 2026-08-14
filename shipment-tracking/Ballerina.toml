@@ -7,18 +7,4 @@ distribution = "2201.13.4"
 [[dependency]]
 org = "ballerina"
 name = "workflow"
-version = "0.8.0"
-repository = "local"
-
-# ballerina/ai 1.12.0 has a BIR incompatible with this distribution; pin the known-good version.
-[[dependency]]
-org = "ballerina"
-name = "ai"
-version = "1.11.2"
-
-# Unreleased ICP bridge build, published to the local repository.
-[[dependency]]
-org = "wso2"
-name = "icp.runtime.bridge"
-version = "0.1.10"
-repository = "local"
+version = "0.8.3"

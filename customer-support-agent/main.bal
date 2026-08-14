@@ -52,7 +52,7 @@ isolated function policyLookup(string topic) returns string|error {
 
 final workflow:DurableAgent supportAgent = check new ({
     systemPrompt: {
-        role: "Customer support agent",
+        role: string `Customer support agent`,
         instructions: string `Help customers with orders, refunds and policy questions.
 Use lookupOrder before discussing an order. Refunds require approval — use the
 issueRefund tool and tell the customer approval is pending. For anything you
@@ -89,6 +89,7 @@ service /support on new http:Listener(9095) {
     resource function post cases(record {|string caseNo; string message;|} request)
             returns json|error {
         string instanceId = check supportAgent.run(request.message);
+
         caseInstances[request.caseNo] = instanceId;
         return {caseNo: request.caseNo, instanceId, status: "OPEN"};
     }
@@ -105,8 +106,8 @@ service /support on new http:Listener(9095) {
         if instanceId is () {
             return error(string `unknown case: ${caseNo}`);
         }
-        string token = check supportAgent.sendEvent(instanceId, "customerMessage", message.message);
-        string reply = check supportAgent.waitForEventResult(instanceId, token);
+        string token = check supportAgent.sendData(instanceId, "customerMessage", message.message);
+        string reply = check supportAgent.waitForDataResult(instanceId, token);
         return {caseNo, reply};
     }
 

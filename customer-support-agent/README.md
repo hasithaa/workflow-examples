@@ -31,6 +31,6 @@ API / the BI inbox).
 
 ## Requirements
 
-- `ballerina/workflow` **0.8.0** in the **local** repository (object-model build).
+- `ballerina/workflow` **0.8.3**, resolved from Ballerina Central.
 - Temporal dev server on `localhost:7233`.
 - WSO2 model provider credentials in `Config.toml`.

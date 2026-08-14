@@ -21,7 +21,7 @@ function expenseApprovalWorkflow(workflow:Context ctx, ExpenseClaim claim,
                 payload = {"claimId": claim.claimId, "employee": claim.employee,
                     "amount": claim.amount, "purpose": claim.purpose},
                 title = string `Check expense request ${claim.claimId}`,
-                description = "Review the new claim: request the supporting bills, or reject it.",
+                description = "Review the new claim: REQUEST_BILL - request the supporting bills, or REJECT - reject it.",
                 timeout = {days: 3});
         if request.action == REJECT {
             string _ = check ctx->callActivity(notifyEmployee,
