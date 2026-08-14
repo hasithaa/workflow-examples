@@ -8,3 +8,6 @@ target/
 Dependencies.toml
 .icp_runtime_id
 .DS_Store
+
+# Local scratch package used for designer experiments, not an example
+testintegration/
