@@ -3,9 +3,3 @@ org = "hasitha"
 name = "shipment_tracking"
 version = "0.1.0"
 distribution = "2201.13.4"
-
-[[dependency]]
-org = "ballerina"
-name = "workflow"
-version = "0.9.1"
-repository = "local"
