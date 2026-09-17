@@ -22,17 +22,8 @@ packages as one workspace.
 
 These examples use the **0.10 task model** of `ballerina/workflow` — approval
 policies, review definitions with a named audience, and task administrators —
-from [module-ballerina-workflow#131](https://github.com/ballerina-platform/module-ballerina-workflow/pull/131),
-which is not released yet. Every example pins `0.9.1` from the **local**
-repository (`repository = "local"`), so push that build once before building:
-
-```sh
-git clone -b task-model-p7-administrators https://github.com/hasithaa/fork-module-ballerina-workflow.git
-cd fork-module-ballerina-workflow && ./gradlew :workflow-ballerina:build
-cd ballerina && bal pack --offline
-rm -rf ~/.ballerina/repositories/local/bala/ballerina/workflow ~/.ballerina/repositories/local/cache-*/ballerina/workflow
-bal push --repository=local target/bala/ballerina-workflow-java21-0.9.1.bala
-```
+released as [0.10.0 on Central](https://central.ballerina.io/ballerina/workflow/0.10.0).
+`bal build` resolves it; no local repository step is needed.
 
 The expense examples also pull the released `wso2/icp.runtime.bridge` 1.0.0
 from Central. The examples target distribution **2201.13.4** (Swan Lake Update 13).
