@@ -25,7 +25,7 @@ function lookupOrder(string orderId) returns OrderInfo|error {
     return {orderId, status: "DELIVERED", amount: 129.90d};
 }
 
-# Refunds an order in the payment system. Declared with `requiresApproval`, so
+# Refunds an order in the payment system. Declared with an `approvalPolicy`, so
 # every call is gated by a review a support lead has to approve first.
 #
 # + orderId - The order to refund
@@ -61,20 +61,19 @@ cannot resolve, create the escalation human task.`
     model: supportModel,
     activities: [
         lookupOrder,
-        {activity: issueRefund, requiresApproval: true, userRoles: "support-lead"}
+        {activity: issueRefund, approvalPolicy: {userRoles: "support-lead"}}
     ],
     tools: [policyLookup],
-    events: [
-        {name: "customerMessage", request: string, response: string, cardinality: workflow:MULTI_EVENT}
-    ],
-    humanTasks: [
-        {
-            name: "escalation",
-            roles: "support-lead",
+    events: {
+        customerMessage: {request: string, response: string, cardinality: workflow:MULTI_EVENT}
+    },
+    humanTasks: {
+        escalation: {
+            userRoles: "support-lead",
             title: "Escalated support case",
             description: "The agent could not resolve the customer's issue on its own."
         }
-    ],
+    },
     maxIter: 12
 });
 

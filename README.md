@@ -20,18 +20,22 @@ packages as one workspace.
 
 ## Prerequisite: the `workflow` module
 
-These examples use the released
-[`ballerina/workflow`](https://central.ballerina.io/ballerina/workflow) **0.8.3**
-from Ballerina Central — no local build is needed. Every example's
-`Ballerina.toml` pins the version; `bal build` pulls it (and
-`wso2/icp.runtime.bridge` 0.2.0 for the expense examples) automatically.
-The examples target distribution **2201.13.4** (Swan Lake Update 13).
+These examples use the **0.10 task model** of `ballerina/workflow` — approval
+policies, review definitions with a named audience, and task administrators —
+from [module-ballerina-workflow#131](https://github.com/ballerina-platform/module-ballerina-workflow/pull/131),
+which is not released yet. Every example pins `0.9.1` from the **local**
+repository (`repository = "local"`), so push that build once before building:
 
-> If you previously followed the local-build instructions from an older
-> revision of this repo, remove the stale local copies so they cannot shadow
-> the released packages: delete
-> `~/.ballerina/repositories/local/bala/ballerina/workflow` and purge the
-> extracted caches (`~/.ballerina/repositories/local/cache-*/ballerina/workflow`).
+```sh
+git clone -b task-model-p7-administrators https://github.com/hasithaa/fork-module-ballerina-workflow.git
+cd fork-module-ballerina-workflow && ./gradlew :workflow-ballerina:build
+cd ballerina && bal pack --offline
+rm -rf ~/.ballerina/repositories/local/bala/ballerina/workflow ~/.ballerina/repositories/local/cache-*/ballerina/workflow
+bal push --repository=local target/bala/ballerina-workflow-java21-0.9.1.bala
+```
+
+The expense examples also pull the released `wso2/icp.runtime.bridge` 1.0.0
+from Central. The examples target distribution **2201.13.4** (Swan Lake Update 13).
 
 ## Runtime setup
 
@@ -63,13 +67,15 @@ following users/roles in your ICP instance before running:
 | --- | --- | --- |
 | `manager` | `expense-approval` | Decides the `approveExpense` human task (approve/reject a claim) |
 | `support-lead` | `customer-support-agent` | Completes the `escalation` human task and approves gated `issueRefund` reviews |
-| `manager` | `loan-approval` | Decides manual-retry reviews of the `transferFunds` activity (`retryPolicy = "manager"`) |
+| `manager` | `loan-approval` | Decides manual-retry reviews of the `transferFunds` activity (`retryPolicy = {userRoles: "manager"}`) |
+| `expense-admin` | `expense-approval`, `expense-approval-agent` | Administers every expense task: sees it beside the managers, may reassign it, move its deadline, or decide it (recorded as an administrator's decision) |
 
-For a local trial, two users are enough — e.g. `alice` with role `manager` and
-`bob` with role `support-lead`. Manual retry policies take the reviewer role(s) directly as the policy value
-(`retryPolicy = "manager"` or `["finance", "manager"]`; an empty list allows
-any role). Programmatic completion must pass matching
-roles, e.g.:
+For a local trial, three users are enough — e.g. `alice` with role `manager`,
+`bob` with role `support-lead` and `sam` with role `expense-admin`. A review is
+declared as a `ReviewTaskDefinition` — `{userRoles: "manager"}`, optionally with
+`users`, `excludedUsers`, `excludedRoles` and `administratorRoles` — wherever a
+policy is expected (`retryPolicy`, `approvalPolicy`). Programmatic completion
+must pass matching roles, e.g.:
 
 ```ballerina
 check workflow:completeHumanTask(taskWorkflowId, decision, ["manager"], "alice");

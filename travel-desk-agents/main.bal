@@ -78,26 +78,23 @@ final workflow:DurableAgent travelDeskAgent = check new ({
     systemPrompt: {
         role: "Travel desk coordinator",
         instructions: string `Plan trips by delegating to your specialist peers.
-Ask askFlightDesk for flights (you get its answer immediately) and
-askHotelDesk for hotels (its answer arrives later on the hotelResults
-channel — wait for it before finalizing). Combine both into one itinerary.`
+Ask flightAgent for flights (you get its answer immediately) and hotelAgent
+for hotels with wait: false and replyEvent: "hotelResults" (its answer arrives
+later on that event — wait for it before finalizing). Combine both into one itinerary.`
     },
     model: travelModel,
-    events: [
-        {name: "hotelResults", request: string}
-    ],
+    events: {
+        hotelResults: {request: string}
+    },
     peers: [
         {
             agent: flightAgent,
-            name: "askFlightDesk",
             description: "Asks the flight specialist to research and recommend flights."
         },
         {
             agent: hotelAgent,
-            name: "askHotelDesk",
-            description: "Asks the hotel specialist to research and recommend hotels.",
-            'wait: false,
-            callbackChannel: "hotelResults"
+            description: "Asks the hotel specialist to research and recommend hotels. Call it with " +
+                "wait: false and replyEvent: \"hotelResults\"; its answer arrives on that event later."
         }
     ],
     maxIter: 10

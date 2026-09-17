@@ -29,26 +29,25 @@ employee with notifyEmployee, and finish with a one-line summary of the outcome.
         validateBills,
         {
             activity: makePayment,
-            requiresApproval: true,
-            userRoles: "manager",
-            retryPolicy: "manager"
+            approvalPolicy: {userRoles: "manager"},
+            retryPolicy: {userRoles: "manager"}
         },
         {
             activity: notifyEmployee,
             retryPolicy: {maxRetries: 3, retryDelay: 2}
         }
     ],
-    events: [
-        {name: "billSubmitted", request: BillSubmission, response: string}
-    ],
-    humanTasks: [
-        {
-            name: "approveExpense",
-            roles: "manager",
+    events: {
+        billSubmitted: {request: BillSubmission, response: string}
+    },
+    humanTasks: {
+        approveExpense: {
+            userRoles: "manager",
+            administratorRoles: "expense-admin",
             title: "Approve expense claim",
             description: "Review the claim and bills, then approve or reject the reimbursement."
         }
-    ],
+    },
     maxIter: 16
 });
 

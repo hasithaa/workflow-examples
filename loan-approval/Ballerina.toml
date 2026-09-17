@@ -7,4 +7,5 @@ distribution = "2201.13.4"
 [[dependency]]
 org = "ballerina"
 name = "workflow"
-version = "0.8.3"
+version = "0.9.1"
+repository = "local"

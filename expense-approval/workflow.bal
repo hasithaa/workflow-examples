@@ -17,9 +17,11 @@ function expenseApprovalWorkflow(workflow:Context ctx, ExpenseClaim claim,
     if !valid {
         return {claimId: claim.claimId, status: "INVALID"};
     } else {
-        RequestDecision request = check ctx->awaitHumanTask("checkExpenseRequest", "manager",
-                payload = {"claimId": claim.claimId, "employee": claim.employee,
+        // Managers decide; the expense administrator sees every task and may reassign, re-deadline or decide it.
+        RequestDecision request = check ctx->awaitHumanTask("checkExpenseRequest",
+                {"claimId": claim.claimId, "employee": claim.employee,
                     "amount": claim.amount, "purpose": claim.purpose},
+                userRoles = "manager", administratorRoles = "expense-admin",
                 title = string `Check expense request ${claim.claimId}`,
                 description = "Review the new claim: REQUEST_BILL - request the supporting bills, or REJECT - reject it.",
                 timeout = {days: 3});
@@ -36,16 +38,17 @@ function expenseApprovalWorkflow(workflow:Context ctx, ExpenseClaim claim,
             boolean billsValid = check ctx->callActivity(validateBills,
                     {"claim": claim, "submission": submission});
 
-            ApprovalDecision decision = check ctx->awaitHumanTask("reviewBills", "manager",
-                    payload = {"claimId": claim.claimId, "amount": claim.amount,
+            ApprovalDecision decision = check ctx->awaitHumanTask("reviewBills",
+                    {"claimId": claim.claimId, "amount": claim.amount,
                         "billCount": submission.bills.length(), "billsMatchClaim": billsValid},
+                    userRoles = "manager", administratorRoles = "expense-admin",
                     title = string `Review bills for claim ${claim.claimId}`,
                     description = "Verify the submitted bills and approve or reject the reimbursement.",
                     timeout = {days: 3});
             if decision.approved {
                 string paymentRef = check ctx->callActivity(makePayment,
                         {"claimId": claim.claimId, "amount": claim.amount, "currency": claim.currency},
-                        retryPolicy = "manager");
+                        retryPolicy = {userRoles: "manager", administratorRoles: "expense-admin"});
                 string _ = check ctx->callActivity(notifyEmployee,
                         {"claimId": claim.claimId, "message": string `Claim approved and paid: ${paymentRef}`},
                         retryPolicy = {maxRetries: 3, retryDelay: 2});
