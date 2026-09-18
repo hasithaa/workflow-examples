@@ -1,3 +1,3 @@
 [workspace]
 title = "Durable Agent Examples"
-packages = ["customer-support-agent", "expense-approval", "expense-approval-agent", "loan-approval", "shipment-tracking", "travel-desk-agents"]
+packages = ["customer-support-agent", "expense-approval", "expense-approval-agent", "loan-approval", "permit-approval-letter", "shipment-tracking", "travel-desk-agents"]

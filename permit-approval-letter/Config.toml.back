@@ -1,0 +1,26 @@
+
+[wso2.icp.runtime.bridge]
+environment = "dev"
+project = "permit-approval-letter"
+integration = "Permit Approval Letters"
+runtime = "hasitha.local"
+secret = "<ICP_RUNTIME_SECRET>"
+#serverUrl="https://<hostname>:9445"
+
+[ballerina.workflow]
+mode = "LOCAL"
+url = "localhost:7233"
+namespace = "default"
+taskQueue = "PERMIT_APPROVAL_LETTER_QUEUE"
+
+[ballerina.workflow.management]
+enableManagementApi = true
+enableApiKey = true
+apiKeyValue = "<ICP_RUNTIME_SECRET>"
+apiKeyHeader = "X-API-Key"
+enableBasicAuth = false
+
+# WSO2 default model provider — fill in before running.
+[ballerina.ai.wso2ProviderConfig]
+serviceUrl = "<WSO2_AI_SERVICE_URL>"
+accessToken = "<WSO2_AI_ACCESS_TOKEN>"

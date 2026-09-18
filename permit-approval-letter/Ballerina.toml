@@ -1,0 +1,14 @@
+[package]
+org = "hasitha"
+name = "permit_approval_letter"
+version = "0.1.0"
+distribution = "2201.13.4"
+
+[[dependency]]
+org = "wso2"
+name = "icp.runtime.bridge"
+version = "1.0.0"
+
+[build-options]
+observabilityIncluded = true
+remoteManagement = true

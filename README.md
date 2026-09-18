@@ -14,6 +14,7 @@ packages as one workspace.
 | [`loan-approval`](loan-approval/) | Loan origination | **Child workflows**: fan-out/fan-in (`runChildWorkflow` / `waitForChildWorkflow`), data events to children (`sendDataToChildWorkflow`), synchronous composition (`callWorkflow`) |
 | [`expense-approval`](expense-approval/) | Expense reimbursement | **Two human tasks + a data event**: request check, bill submission (`workflow:sendData`), bill review — all decided in the ICP inbox |
 | [`expense-approval-agent`](expense-approval-agent/) | Expense reimbursement | **Agentic version of expense-approval**: one human task instead of two — the agent requests/validates bills itself and escalates only when needed |
+| [`permit-approval-letter`](permit-approval-letter/) | Building permits | **Agent inside a workflow**: an agent drafts the decision letter, one officer assesses and a second signs (`excludedUsers`), and the signature comes from the task's own completion (`lastHumanTaskCompletion`) |
 | [`shipment-tracking`](shipment-tracking/) | Courier tracking | **Data events**: two `future` data events (`pickedUp`, `delivered`) driven by `workflow:sendData` callbacks |
 | [`customer-support-agent`](customer-support-agent/) | Support triage | **Single durable agent**: activities, approval-gated refunds, AI tool, human-task escalation, multi-turn conversation channel |
 | [`travel-desk-agents`](travel-desk-agents/) | Trip planning | **Multi-agent / A2A**: coordinator + two specialist peer agents, synchronous and asynchronous (callback channel) delegation |
@@ -58,6 +59,8 @@ following users/roles in your ICP instance before running:
 | --- | --- | --- |
 | `manager` | `expense-approval` | Decides the `approveExpense` human task (approve/reject a claim) |
 | `support-lead` | `customer-support-agent` | Completes the `escalation` human task and approves gated `issueRefund` reviews |
+| `permit-officer` | `permit-approval-letter` | Assesses the plans, signs the letter, and decides a failed delivery. **Two users must hold it**: the assessor is excluded from the sign-off |
+| `permit-admin` | `permit-approval-letter` | Administrator on both permit tasks; a letter signed by an administrator records that |
 | `manager` | `loan-approval` | Decides manual-retry reviews of the `transferFunds` activity (`retryPolicy = {userRoles: "manager"}`) |
 | `expense-admin` | `expense-approval`, `expense-approval-agent` | Administers every expense task: sees it beside the managers, may reassign it, move its deadline, or decide it (recorded as an administrator's decision) |
 
